@@ -1,8 +1,14 @@
 import { builder } from '../builder'
 import { prisma } from '../db'
 import { PostCreateInput } from './post'
+import {
+  SubscriptionEvents,
+  SubscriptionAction,
+  UserSubscription,
+  SubscriptionEvent,
+} from '../pubsub'
 
-builder.prismaObject('User', {
+const UserObject = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeInt('id'),
     name: t.exposeString('name', { nullable: true }),
@@ -49,7 +55,13 @@ builder.mutationFields((t) => ({
           name: args.data.name,
         },
       })
-      ctx.pubsub.publish('user', { user: createdUser })
+
+      const subscriptionPayload: UserSubscription = {
+        user: createdUser,
+        action: SubscriptionAction.CREATED,
+      }
+
+      ctx.pubsub.publish('user', subscriptionPayload)
       return createdUser
     },
   }),
@@ -62,7 +74,7 @@ builder.mutationFields((t) => ({
       id: t.arg.int(),
       email: t.arg.string(),
     },
-    resolve: (query, parent, args) => {
+    resolve: async (query, parent, args, ctx) => {
       const selectByEmail: boolean =
         args.email !== undefined && args.email !== null
       const selectById: boolean =
@@ -72,42 +84,59 @@ builder.mutationFields((t) => ({
         throw new Error('No valid input to delete a user')
       }
 
-      return prisma.user.delete({
+      const deletedUser = await prisma.user.delete({
         where: {
           email: (selectByEmail ? args.email : undefined) as string | undefined,
           id: (selectById ? args.id : undefined) as number | undefined,
         },
       })
+
+      const subscriptionPayload: UserSubscription = {
+        user: deletedUser,
+        action: SubscriptionAction.DELETED,
+      }
+      ctx.pubsub.publish('user', subscriptionPayload)
+
+      return deletedUser
     },
   }),
 }))
 
-interface UserSubscription {
-  user: any
-}
+builder.enumType(SubscriptionAction, {
+  name: 'SubscriptionAction',
+})
 
-const subscriptionEvent =
-  builder.objectRef<UserSubscription>('UserSubscription')
+const subscriptionEvent = builder
+  .interfaceRef<SubscriptionEvent>('SubscriptionEvent')
+  .implement({
+    fields: (t) => ({
+      action: t.field({
+        type: SubscriptionAction,
+        resolve: (payload) => payload.action,
+      }),
+    }),
+  })
 
-subscriptionEvent.implement({
+const subscriptionUserEvent = builder.objectRef<SubscriptionEvents>(
+  'SubscriptionUserEvent',
+)
+
+subscriptionUserEvent.implement({
+  interfaces: [subscriptionEvent],
   fields: (t) => ({
-    user: t.prismaField({
-      type: 'User',
-      nullable: true,
-      resolve: (query, event) => {
-        //preprocessing of subscription result can be done here
-        return event.user
-      },
+    user: t.field({
+      type: UserObject,
+      resolve: (payload) => payload.user,
     }),
   }),
 })
 
 builder.subscriptionType({
   fields: (t) => ({
-    createdUser: t.field({
-      type: subscriptionEvent,
+    userUpdate: t.field({
+      type: subscriptionUserEvent,
       subscribe: (root, args, ctx) => ctx.pubsub.subscribe('user'),
-      resolve: (event) => event,
+      resolve: (payload) => payload,
     }),
   }),
 })

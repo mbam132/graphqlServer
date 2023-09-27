@@ -35,7 +35,21 @@ type QueryAllUsersSuccess {
 }
 
 type Subscription {
-  createdUser: UserSubscription!
+  userUpdate: SubscriptionUserEvent!
+}
+
+enum SubscriptionAction {
+  CREATED
+  DELETED
+}
+
+interface SubscriptionEvent {
+  action: SubscriptionAction!
+}
+
+type SubscriptionUserEvent implements SubscriptionEvent {
+  action: SubscriptionAction!
+  user: User!
 }
 
 type User {
@@ -47,8 +61,4 @@ type User {
 input UserCreateInput {
   email: String!
   name: String
-}
-
-type UserSubscription {
-  user: User
 }

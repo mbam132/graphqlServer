@@ -16,3 +16,14 @@ model User {
   email String  @unique
   name  String?
 }
+model UserActionsLog {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  action UserAction
+  email String
+}
+
+enum UserAction {
+  CREATED
+  DELETED
+}

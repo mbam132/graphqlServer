@@ -136,7 +136,21 @@ builder.subscriptionType({
     userUpdate: t.field({
       type: subscriptionUserEvent,
       subscribe: (root, args, ctx) => ctx.pubsub.subscribe('user'),
-      resolve: (payload) => payload,
+      resolve: async (payload) => {
+        try {
+          await prisma.userActionsLog.create({
+            data: {
+              email: payload?.user?.email,
+              action: payload?.action,
+            },
+          })
+        } catch (error) {
+          console.error('Error persiting into UserActionsLog table')
+          console.error(error.message)
+        } finally {
+          return payload
+        }
+      },
     }),
   }),
 })

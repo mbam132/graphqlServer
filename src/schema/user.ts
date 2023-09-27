@@ -1,6 +1,5 @@
 import { builder } from '../builder'
 import { prisma } from '../db'
-import { PostCreateInput } from './post'
 import {
   SubscriptionEvents,
   SubscriptionAction,
@@ -117,7 +116,7 @@ const subscriptionEvent = builder
     }),
   })
 
-const subscriptionUserEvent = builder.objectRef<SubscriptionEvents>(
+const subscriptionUserEvent = builder.objectRef<UserSubscription>(
   'SubscriptionUserEvent',
 )
 
@@ -135,8 +134,9 @@ builder.subscriptionType({
   fields: (t) => ({
     userUpdate: t.field({
       type: subscriptionUserEvent,
+      // @ts-ignore
       subscribe: (root, args, ctx) => ctx.pubsub.subscribe('user'),
-      resolve: async (payload) => {
+      resolve: async (payload: UserSubscription): Promise<UserSubscription> => {
         try {
           await prisma.userActionsLog.create({
             data: {
@@ -146,9 +146,11 @@ builder.subscriptionType({
           })
         } catch (error) {
           console.error('Error persiting into UserActionsLog table')
-          console.error(error.message)
+          if (error instanceof Error) {
+            console.error(error.message)
+          }
         } finally {
-          return payload
+          return payload as UserSubscription
         }
       },
     }),

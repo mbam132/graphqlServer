@@ -1,0 +1,25 @@
+name: Build Pipeline
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    env:
+      DOCKER_USER: ${{secrets.DOCKER_USER}}
+      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Login
+        run: docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+      - name: Docker Image Build
+        run: >
+          docker build . --file Dockerfile
+          --tag $DOCKER_USER/graphql-server:latest
+          --platform=linux/amd64
+
+      - name: Pushing to Docker Hub
+        run: docker push $DOCKER_USER/graphql-server:latest

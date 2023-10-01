@@ -1,10 +1,9 @@
 import { builder } from '../builder'
 import { prisma } from '../db'
 import {
-  SubscriptionEvents,
   SubscriptionAction,
-  UserSubscription,
   SubscriptionEvent,
+  UserSubscription,
 } from '../pubsub'
 
 const UserObject = builder.prismaObject('User', {
@@ -29,6 +28,7 @@ builder.queryFields((t) => ({
       types: [Error],
     },
     resolve: (query) => {
+      console.log('All users fetched')
       return prisma.user.findMany({ ...query })
     },
   }),
@@ -60,7 +60,7 @@ builder.mutationFields((t) => ({
         action: SubscriptionAction.CREATED,
       }
 
-      ctx.pubsub.publish('user', subscriptionPayload)
+      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
       return createdUser
     },
   }),
@@ -94,7 +94,7 @@ builder.mutationFields((t) => ({
         user: deletedUser,
         action: SubscriptionAction.DELETED,
       }
-      ctx.pubsub.publish('user', subscriptionPayload)
+      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
 
       return deletedUser
     },
@@ -116,11 +116,9 @@ const subscriptionEvent = builder
     }),
   })
 
-const subscriptionUserEvent = builder.objectRef<UserSubscription>(
-  'SubscriptionUserEvent',
-)
+const USubscription = builder.objectRef<UserSubscription>('UserSubscription')
 
-subscriptionUserEvent.implement({
+USubscription.implement({
   interfaces: [subscriptionEvent],
   fields: (t) => ({
     user: t.field({
@@ -133,9 +131,13 @@ subscriptionUserEvent.implement({
 builder.subscriptionType({
   fields: (t) => ({
     userUpdate: t.field({
-      type: subscriptionUserEvent,
+      type: USubscription,
       // @ts-ignore
-      subscribe: (root, args, ctx) => ctx.pubsub.subscribe('user'),
+      subscribe: (
+        root,
+        args,
+        ctx, // @ts-ignore
+      ) => ctx.pubsub.subscribe('user-persisting-action'),
       resolve: async (payload: UserSubscription): Promise<UserSubscription> => {
         try {
           await prisma.userActionsLog.create({
@@ -150,6 +152,15 @@ builder.subscriptionType({
             console.error(error.message)
           }
         } finally {
+          const stringToLog =
+            payload.action &&
+            `A user was ${
+              payload?.action === 'CREATED' ? 'created' : 'deleted'
+            }`
+          if (stringToLog) {
+            console.log(stringToLog)
+          }
+          console.log('A subscription was sent')
           return payload as UserSubscription
         }
       },

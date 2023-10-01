@@ -14,11 +14,11 @@ export interface UserSubscription extends SubscriptionEvent {
   user: User
 }
 
-interface OtherSubscriptionTypesToAdd extends SubscriptionEvent {
+interface OtherSubscriptionTypesToAdd {
   nothing: 'forTheMoment'
 }
 
 export interface SubscriptionEvents
-  extends Record<string, [UserSubscription | OtherSubscriptionTypesToAdd]> {}
+  extends Record<string, [UserSubscription] | [OtherSubscriptionTypesToAdd]> {}
 
 export const pubsub = createPubSub<SubscriptionEvents>({})

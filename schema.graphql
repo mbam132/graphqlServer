@@ -8,8 +8,22 @@ type Error {
 }
 
 type Mutation {
+  createTask(data: TaskCreateInput!): MutationCreateTaskResult!
+  createTodo(data: TodoCreateInput!): MutationCreateTodoResult!
   createUser(data: UserCreateInput!): MutationCreateUserResult!
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
+}
+
+union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
+
+type MutationCreateTaskSuccess {
+  data: Task!
+}
+
+union MutationCreateTodoResult = Error | MutationCreateTodoSuccess
+
+type MutationCreateTodoSuccess {
+  data: TodoList!
 }
 
 union MutationCreateUserResult = Error | MutationCreateUserSuccess
@@ -25,7 +39,14 @@ type MutationDeleteUserSuccess {
 }
 
 type Query {
+  allTodos: QueryAllTodosResult!
   allUsers: QueryAllUsersResult!
+}
+
+union QueryAllTodosResult = Error | QueryAllTodosSuccess
+
+type QueryAllTodosSuccess {
+  data: [TodoList!]!
 }
 
 union QueryAllUsersResult = Error | QueryAllUsersSuccess
@@ -45,6 +66,33 @@ enum SubscriptionAction {
 
 interface SubscriptionEvent {
   action: SubscriptionAction!
+}
+
+type Task {
+  id: Int!
+  list: TodoList!
+  listId: Int!
+  minutesEstimate: Float
+  name: String!
+}
+
+input TaskCreateInput {
+  listId: Int!
+  minutesEstimates: Float
+  name: String!
+}
+
+input TodoCreateInput {
+  name: String!
+  userEmail: String!
+}
+
+type TodoList {
+  id: Int!
+  name: String!
+  task: [Task!]!
+  user: User!
+  userEmail: String!
 }
 
 type User {

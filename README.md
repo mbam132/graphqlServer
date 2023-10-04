@@ -1,16 +1,17 @@
-# GraphQL & Prisma Server
+# GraphQL Yoga, Pothos & Prisma Server
 
 The server has implemented the following features:
 
 - Create, Delete, and Read operations
-- Subscription to when a resource is created
+- Subscription to when a user is created or deleted
 
 If you want to replicate the project:
 
 - Specify a database configuration in /prisma/schema.prisma
-- Run the database migration
+- Run the database migrations
+- run 'npm run dev'
 
-For covering errors in your queries, you need to make use of GraphQL fragments, e.g:
+All of the queries and mutations support GraphQL fragments, an e.g:
 
 ```
  query {

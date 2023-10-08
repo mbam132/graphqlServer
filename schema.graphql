@@ -12,6 +12,8 @@ type Mutation {
   createTodo(data: TodoCreateInput!): MutationCreateTodoResult!
   createUser(data: UserCreateInput!): MutationCreateUserResult!
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
+  login(email: String!, password: String!): MutationLoginResult!
+  signUp(email: String!, name: String, password: String!): MutationSignUpResult!
 }
 
 union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
@@ -35,6 +37,18 @@ type MutationCreateUserSuccess {
 union MutationDeleteUserResult = Error | MutationDeleteUserSuccess
 
 type MutationDeleteUserSuccess {
+  data: User!
+}
+
+union MutationLoginResult = Error | MutationLoginSuccess
+
+type MutationLoginSuccess {
+  data: UserAuth!
+}
+
+union MutationSignUpResult = Error | MutationSignUpSuccess
+
+type MutationSignUpSuccess {
   data: User!
 }
 
@@ -99,6 +113,11 @@ type User {
   email: String!
   id: Int!
   name: String
+}
+
+type UserAuth {
+  jwt: String!
+  user: User!
 }
 
 input UserCreateInput {

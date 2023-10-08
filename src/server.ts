@@ -6,19 +6,18 @@ import { pubsub } from './pubsub'
 const yoga = createYoga({
   graphqlEndpoint: '/',
   schema,
-  context: (req) => {
-    return {
-      req,
-      pubsub,
-    }
-  },
+  context: (req) => ({
+    req,
+    pubsub,
+  }),
 })
 
 const server = createServer(yoga)
 
-server.listen(4000, () => {
+const PORT = 4000
+
+server.listen(PORT, () => {
   console.log(`\
-🚀 Server ready at: http://127.0.0.1:4000
-⭐️ See sample queries: http://pris.ly/e/ts/graphql#using-the-graphql-api
+🚀 Server ready at port: ${PORT}
   `)
 })

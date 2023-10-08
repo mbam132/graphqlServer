@@ -1,3 +1,6 @@
+import { hashSync, compareSync, genSaltSync } from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import { User } from '@prisma/client'
 import { builder } from '../builder'
 import { prisma } from '../db'
 import {
@@ -5,6 +8,8 @@ import {
   SubscriptionEvent,
   UserSubscription,
 } from '../pubsub'
+
+const tokenDurationInMinutes = 10
 
 const UserObject = builder.prismaObject('User', {
   fields: (t) => ({
@@ -18,6 +23,23 @@ const UserCreateInput = builder.inputType('UserCreateInput', {
   fields: (t) => ({
     email: t.string({ required: true }),
     name: t.string(),
+  }),
+})
+
+type IUserAuth = {
+  user: User
+  jwt: string
+}
+
+const UserAuth = builder.objectRef<IUserAuth>('UserAuth')
+
+builder.objectType(UserAuth, {
+  fields: (t) => ({
+    user: t.prismaField({
+      type: 'User',
+      resolve: (_, payload) => payload.user,
+    }),
+    jwt: t.exposeString('jwt'),
   }),
 })
 
@@ -52,6 +74,96 @@ builder.mutationFields((t) => ({
         data: {
           email: args.data.email,
           name: args.data.name,
+        },
+      })
+
+      const subscriptionPayload: UserSubscription = {
+        user: createdUser,
+        action: SubscriptionAction.CREATED,
+      }
+
+      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
+      return createdUser
+    },
+  }),
+  login: t.field({
+    type: UserAuth,
+    errors: {
+      types: [Error],
+    },
+    args: {
+      email: t.arg({
+        type: 'String',
+        required: true,
+      }),
+      password: t.arg({
+        type: 'String',
+        required: true,
+      }),
+    },
+    resolve: async (query, args, ctx, info) => {
+      try {
+        const user = await prisma.user.findFirst({
+          where: {
+            email: args.email,
+          },
+        })
+
+        if (!user) {
+          throw new Error("The credentials don't match with any existing user")
+        }
+
+        const passwordMatches = compareSync(args.password, user?.password)
+
+        if (!passwordMatches) {
+          throw new Error("The credentials don't match with any existing user")
+        }
+
+        const token = jwt.sign(
+          {
+            exp: Date.now() + tokenDurationInMinutes + 60 * 1000,
+            data: {
+              email: user.email,
+              name: user.name,
+            },
+          },
+          process.env.TOKEN_HASHING_SECRET as string,
+        )
+
+        return { user: user as User, jwt: token }
+      } catch (error) {
+        // @ts-ignore
+        throw new Error(error.message)
+      }
+    },
+  }),
+  signUp: t.prismaField({
+    type: 'User',
+    errors: {
+      types: [Error],
+    },
+    args: {
+      email: t.arg({
+        type: 'String',
+        required: true,
+      }),
+      password: t.arg({
+        type: 'String',
+        required: true,
+      }),
+      name: t.arg({
+        type: 'String',
+      }),
+    },
+    resolve: async (query, parent, args, ctx) => {
+      const salt = genSaltSync(11)
+      const hashedPassword = hashSync(args.password, salt)
+
+      const createdUser = await prisma.user.create({
+        data: {
+          email: args.email,
+          name: args.name,
+          password: hashedPassword,
         },
       })
 
@@ -132,7 +244,6 @@ builder.subscriptionType({
   fields: (t) => ({
     userUpdate: t.field({
       type: USubscription,
-      // @ts-ignore
       subscribe: (
         root,
         args,

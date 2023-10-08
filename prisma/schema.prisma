@@ -50,5 +50,7 @@ model UserActionsLog {
 
 enum UserAction {
   CREATED
+  SIGNED_UP
+  LOGGED_IN
   DELETED
 }

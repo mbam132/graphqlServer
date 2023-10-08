@@ -3,6 +3,8 @@ import { User } from '@prisma/client'
 
 export enum SubscriptionAction {
   CREATED = 'CREATED',
+  SIGNED_UP = 'SIGNED_UP',
+  LOGGED_IN = 'LOGGED_IN',
   DELETED = 'DELETED',
 }
 

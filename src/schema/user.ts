@@ -82,7 +82,7 @@ builder.mutationFields((t) => ({
         action: SubscriptionAction.CREATED,
       }
 
-      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
+      ctx.pubsub.publish('user-action', subscriptionPayload)
       return createdUser
     },
   }),
@@ -130,6 +130,13 @@ builder.mutationFields((t) => ({
           process.env.TOKEN_HASHING_SECRET as string,
         )
 
+        const subscriptionPayload: UserSubscription = {
+          user,
+          action: SubscriptionAction.LOGGED_IN,
+        }
+
+        ctx.pubsub.publish('user-action', subscriptionPayload)
+
         return { user: user as User, jwt: token }
       } catch (error) {
         // @ts-ignore
@@ -169,10 +176,10 @@ builder.mutationFields((t) => ({
 
       const subscriptionPayload: UserSubscription = {
         user: createdUser,
-        action: SubscriptionAction.CREATED,
+        action: SubscriptionAction.SIGNED_UP,
       }
 
-      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
+      ctx.pubsub.publish('user-action', subscriptionPayload)
       return createdUser
     },
   }),
@@ -206,7 +213,7 @@ builder.mutationFields((t) => ({
         user: deletedUser,
         action: SubscriptionAction.DELETED,
       }
-      ctx.pubsub.publish('user-persisting-action', subscriptionPayload)
+      ctx.pubsub.publish('user-action', subscriptionPayload)
 
       return deletedUser
     },
@@ -248,7 +255,7 @@ builder.subscriptionType({
         root,
         args,
         ctx, // @ts-ignore
-      ) => ctx.pubsub.subscribe('user-persisting-action'),
+      ) => ctx.pubsub.subscribe('user-action'),
       resolve: async (payload: UserSubscription): Promise<UserSubscription> => {
         try {
           await prisma.userActionsLog.create({

@@ -76,6 +76,8 @@ type Subscription {
 enum SubscriptionAction {
   CREATED
   DELETED
+  LOGGED_IN
+  SIGNED_UP
 }
 
 interface SubscriptionEvent {

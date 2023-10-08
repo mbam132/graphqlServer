@@ -12,34 +12,40 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
+  id    Int        @id @default(autoincrement())
+  email String     @unique
   name  String?
   lists TodoList[]
+  password String @default("password")
+  authScope AuthScope @default(PLAINUSER)
+}
+
+enum AuthScope {
+  SUPERUSER
+  PLAINUSER
 }
 
 model TodoList {
-  id Int @id @default(autoincrement())
-  name String
-  user User @relation(fields: [userEmail], references: [email], onDelete: Cascade, onUpdate: Cascade)
+  id        Int    @id @default(autoincrement())
+  name      String
   userEmail String
-  tasks Task[]
+  tasks     Task[]
+  user User @relation(fields: [userEmail], references: [email], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model Task {
-  id Int @id @default(autoincrement())
-  name String
-  minutesEstimate Float? 
+  id              Int      @id @default(autoincrement())
+  name            String
+  minutesEstimate Float?
+  listId          Int
   list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  listId Int
 }
 
-
 model UserActionsLog {
-  id Int @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  action UserAction
-  email String
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now())
+  action    UserAction
+  email     String
 }
 
 enum UserAction {

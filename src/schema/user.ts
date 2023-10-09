@@ -8,14 +8,20 @@ import {
   SubscriptionEvent,
   UserSubscription,
 } from '../pubsub'
+import {
+  getDecodedToken,
+  decodedTokenIsValid,
+  signToken,
+} from '../services/auth'
 
 const tokenDurationInMinutes = 10
 
 const UserObject = builder.prismaObject('User', {
   fields: (t) => ({
-    id: t.exposeInt('id'),
+    id: t.exposeInt('id', { nullable: true }),
     name: t.exposeString('name', { nullable: true }),
     email: t.exposeString('email'),
+    authScope: t.exposeString('authScope'),
   }),
 })
 
@@ -46,6 +52,9 @@ builder.objectType(UserAuth, {
 builder.queryFields((t) => ({
   allUsers: t.prismaField({
     type: ['User'],
+    authScopes: {
+      LOGGED_IN: true,
+    },
     errors: {
       types: [Error],
     },
@@ -57,6 +66,27 @@ builder.queryFields((t) => ({
 }))
 
 builder.mutationFields((t) => ({
+  verifyJwt: t.prismaField({
+    type: 'User',
+    errors: {
+      types: [Error],
+    },
+    args: {
+      value: t.arg({
+        type: 'String',
+        required: true,
+      }),
+    },
+    resolve(query, parent, args, ctx) {
+      const decodedToken: any = getDecodedToken(args.value)
+
+      if (!decodedTokenIsValid(decodedToken)) {
+        throw new Error('The token is not valid')
+      }
+
+      return decodedToken.data
+    },
+  }),
   createUser: t.prismaField({
     type: 'User',
     errors: {
@@ -119,24 +149,13 @@ builder.mutationFields((t) => ({
           throw new Error("The credentials don't match with any existing user")
         }
 
-        const token = jwt.sign(
-          {
-            exp: Date.now() + tokenDurationInMinutes + 60 * 1000,
-            data: {
-              email: user.email,
-              name: user.name,
-            },
-          },
-          process.env.TOKEN_HASHING_SECRET as string,
-        )
-
         const subscriptionPayload: UserSubscription = {
           user,
           action: SubscriptionAction.LOGGED_IN,
         }
-
         ctx.pubsub.publish('user-action', subscriptionPayload)
 
+        const token = signToken(user)
         return { user: user as User, jwt: token }
       } catch (error) {
         // @ts-ignore

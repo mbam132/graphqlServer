@@ -14,6 +14,7 @@ type Mutation {
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
   login(email: String!, password: String!): MutationLoginResult!
   signUp(email: String!, name: String, password: String!): MutationSignUpResult!
+  verifyJwt(value: String!): MutationVerifyJwtResult!
 }
 
 union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
@@ -49,6 +50,12 @@ type MutationLoginSuccess {
 union MutationSignUpResult = Error | MutationSignUpSuccess
 
 type MutationSignUpSuccess {
+  data: User!
+}
+
+union MutationVerifyJwtResult = Error | MutationVerifyJwtSuccess
+
+type MutationVerifyJwtSuccess {
   data: User!
 }
 
@@ -112,8 +119,9 @@ type TodoList {
 }
 
 type User {
+  authScope: String!
   email: String!
-  id: Int!
+  id: Int
   name: String
 }
 

@@ -19,6 +19,7 @@
     "@pothos/core": "3.37.0",
     "@pothos/plugin-errors": "^3.11.1",
     "@pothos/plugin-prisma": "3.60.0",
+    "@pothos/plugin-scope-auth": "^3.20.0",
     "@pothos/plugin-smart-subscriptions": "^3.7.1",
     "@prisma/client": "5.3.1",
     "bcrypt": "^5.1.1",

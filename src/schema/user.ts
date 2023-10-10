@@ -1,5 +1,4 @@
 import { hashSync, compareSync, genSaltSync } from 'bcrypt'
-import jwt from 'jsonwebtoken'
 import { User } from '@prisma/client'
 import { builder } from '../builder'
 import { prisma } from '../db'
@@ -8,11 +7,7 @@ import {
   SubscriptionEvent,
   UserSubscription,
 } from '../pubsub'
-import {
-  getDecodedToken,
-  decodedTokenIsValid,
-  signToken,
-} from '../services/auth'
+import { tokenIsValid, signToken } from '../services/auth'
 
 const tokenDurationInMinutes = 10
 
@@ -29,6 +24,7 @@ const UserCreateInput = builder.inputType('UserCreateInput', {
   fields: (t) => ({
     email: t.string({ required: true }),
     name: t.string(),
+    password: t.string({ required: true }),
   }),
 })
 
@@ -54,6 +50,7 @@ builder.queryFields((t) => ({
     type: ['User'],
     authScopes: {
       LOGGED_IN: true,
+      SUPERUSER: true,
     },
     errors: {
       types: [Error],
@@ -78,19 +75,23 @@ builder.mutationFields((t) => ({
       }),
     },
     resolve(query, parent, args, ctx) {
-      const decodedToken: any = getDecodedToken(args.value)
+      const { result, payload } = tokenIsValid(args.value)
 
-      if (!decodedTokenIsValid(decodedToken)) {
+      if (!result) {
         throw new Error('The token is not valid')
       }
 
-      return decodedToken.data
+      return payload
     },
   }),
   createUser: t.prismaField({
     type: 'User',
     errors: {
       types: [Error],
+    },
+    authScopes: {
+      LOGGED_IN: true,
+      SUPERUSER: true,
     },
     args: {
       data: t.arg({
@@ -99,11 +100,15 @@ builder.mutationFields((t) => ({
       }),
     },
     resolve: async (query, parent, args, ctx) => {
+      const salt = genSaltSync(11)
+      const hashedPassword = hashSync(args.data.password, salt)
+
       const createdUser = await prisma.user.create({
         ...query,
         data: {
           email: args.data.email,
           name: args.data.name,
+          password: hashedPassword,
         },
       })
 
@@ -206,6 +211,10 @@ builder.mutationFields((t) => ({
     type: 'User',
     errors: {
       types: [Error],
+    },
+    authScopes: {
+      LOGGED_IN: true,
+      SUPERUSER: true,
     },
     args: {
       id: t.arg.int(),

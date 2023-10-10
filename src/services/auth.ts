@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import { User } from '@prisma/client'
+import { IScopes } from '../types'
 
 const tokenDurationInMinutes = 10
 
@@ -7,25 +8,18 @@ function getDecodedToken(token: string) {
   return jwt.verify(token, process.env.TOKEN_HASHING_SECRET as string)
 }
 
-function decodedTokenIsValid(value: any) {
-  const tokenIsStillValid: boolean = value.exp > Date.now()
-  if (!tokenIsStillValid) {
-    throw new Error('The token expired')
-  }
-
-  const fieldsAreFilled: boolean =
-    value.data.email !== '' && value.data.name !== ''
-
-  if (fieldsAreFilled) {
-    return true
-  }
-  return false
-}
-
 function tokenIsValid(token: string) {
-  const decodedToken: any = getDecodedToken(token)
-
-  return decodedTokenIsValid(decodedToken)
+  try {
+    const decodedToken: any = getDecodedToken(token)
+    return {
+      result: Object.keys(decodedToken).length > 0,
+      payload: decodedToken,
+    }
+  } catch (error) {
+    return {
+      result: false,
+    }
+  }
 }
 
 function signToken(userObject: User): string {
@@ -42,4 +36,4 @@ function signToken(userObject: User): string {
   )
 }
 
-export { tokenIsValid, decodedTokenIsValid, getDecodedToken, signToken }
+export { signToken, tokenIsValid }

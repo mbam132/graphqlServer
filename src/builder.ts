@@ -7,6 +7,7 @@ import { DateTimeResolver } from 'graphql-scalars'
 import { prisma } from './db'
 import { pubsub } from './pubsub'
 import { tokenIsValid } from './services/auth'
+import { IScopes } from './types'
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes
@@ -24,12 +25,19 @@ export const builder = new SchemaBuilder<{
 }>({
   plugins: [ScopeAuthPlugin, PrismaPlugin, ErrorsPlugin],
   authScopes: async (context: any) => {
-    const token = context.req?.req?.headers?.authorization.split('Bearer ')[1]
-    const isLoggedIn = tokenIsValid(token)
+    const token = context.req?.req?.headers?.authorization?.split('Bearer ')[1]
+    const { result: theTokenIsValid, payload } = tokenIsValid(token)
+
+    if (!theTokenIsValid) {
+      return {
+        SUPERUSER: false,
+        LOGGED_IN: false,
+      }
+    }
 
     return {
-      SUPERUSER: false,
-      LOGGED_IN: isLoggedIn,
+      SUPERUSER: payload.authScope === IScopes.SUPERUSER,
+      LOGGED_IN: true,
     }
   },
   errorOptions: { defaultTypes: [] },

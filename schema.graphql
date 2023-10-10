@@ -133,6 +133,7 @@ type UserAuth {
 input UserCreateInput {
   email: String!
   name: String
+  password: String!
 }
 
 type UserSubscription implements SubscriptionEvent {

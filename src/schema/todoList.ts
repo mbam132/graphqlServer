@@ -1,5 +1,7 @@
 import { builder } from '../builder'
 import { prisma } from '../db'
+import { tokenIsValid } from '../services/auth'
+import { TodoList } from '@prisma/client'
 
 const todoListObject = builder.prismaObject('TodoList', {
   fields: (t) => ({
@@ -57,6 +59,32 @@ builder.mutationFields((t) => ({
         // @ts-ignore
         throw new Error(error.message)
       }
+    },
+  }),
+  authGetTodos: t.prismaField({
+    type: ['TodoList'],
+    errors: {
+      types: [Error],
+    },
+    authScopes: {
+      LOGGED_IN: true,
+      SUPERUSER: false,
+    },
+    resolve: async (query, parent, args, ctx) => {
+      // @ts-ignore
+      const token = ctx.req?.req?.headers?.authorization?.split('Bearer ')[1]
+      const { payload: tokenPayload } = tokenIsValid(token)
+
+      const dbRequestResult = await prisma.user.findFirst({
+        where: {
+          email: tokenPayload.email,
+        },
+        include: {
+          lists: true,
+        },
+      })
+
+      return dbRequestResult?.lists as TodoList[]
     },
   }),
 }))

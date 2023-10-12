@@ -8,13 +8,19 @@ type Error {
 }
 
 type Mutation {
+  authGetTodos: MutationAuthGetTodosResult!
   createTask(data: TaskCreateInput!): MutationCreateTaskResult!
   createTodo(data: TodoCreateInput!): MutationCreateTodoResult!
-  createUser(data: UserCreateInput!): MutationCreateUserResult!
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
   login(email: String!, password: String!): MutationLoginResult!
   signUp(email: String!, name: String, password: String!): MutationSignUpResult!
   verifyJwt(value: String!): MutationVerifyJwtResult!
+}
+
+union MutationAuthGetTodosResult = Error | MutationAuthGetTodosSuccess
+
+type MutationAuthGetTodosSuccess {
+  data: [TodoList!]!
 }
 
 union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
@@ -27,12 +33,6 @@ union MutationCreateTodoResult = Error | MutationCreateTodoSuccess
 
 type MutationCreateTodoSuccess {
   data: TodoList!
-}
-
-union MutationCreateUserResult = Error | MutationCreateUserSuccess
-
-type MutationCreateUserSuccess {
-  data: User!
 }
 
 union MutationDeleteUserResult = Error | MutationDeleteUserSuccess

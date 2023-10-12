@@ -9,8 +9,6 @@ import {
 } from '../pubsub'
 import { tokenIsValid, signToken } from '../services/auth'
 
-const tokenDurationInMinutes = 10
-
 const UserObject = builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeInt('id', { nullable: true }),
@@ -55,7 +53,7 @@ builder.queryFields((t) => ({
     errors: {
       types: [Error],
     },
-    resolve: (query) => {
+    resolve: (query, parent, args, ctx) => {
       console.log('All users fetched')
       return prisma.user.findMany({ ...query })
     },
@@ -82,43 +80,6 @@ builder.mutationFields((t) => ({
       }
 
       return payload
-    },
-  }),
-  createUser: t.prismaField({
-    type: 'User',
-    errors: {
-      types: [Error],
-    },
-    authScopes: {
-      LOGGED_IN: true,
-      SUPERUSER: true,
-    },
-    args: {
-      data: t.arg({
-        type: UserCreateInput,
-        required: true,
-      }),
-    },
-    resolve: async (query, parent, args, ctx) => {
-      const salt = genSaltSync(11)
-      const hashedPassword = hashSync(args.data.password, salt)
-
-      const createdUser = await prisma.user.create({
-        ...query,
-        data: {
-          email: args.data.email,
-          name: args.data.name,
-          password: hashedPassword,
-        },
-      })
-
-      const subscriptionPayload: UserSubscription = {
-        user: createdUser,
-        action: SubscriptionAction.CREATED,
-      }
-
-      ctx.pubsub.publish('user-action', subscriptionPayload)
-      return createdUser
     },
   }),
   login: t.field({

@@ -8,31 +8,17 @@ type Error {
 }
 
 type Mutation {
-  authGetTodos: MutationAuthGetTodosResult!
-  createTask(data: TaskCreateInput!): MutationCreateTaskResult!
-  createTodo(data: TodoCreateInput!): MutationCreateTodoResult!
+  createTask(name: String!): MutationCreateTaskResult!
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
   login(email: String!, password: String!): MutationLoginResult!
   signUp(email: String!, name: String, password: String!): MutationSignUpResult!
   verifyJwt(value: String!): MutationVerifyJwtResult!
 }
 
-union MutationAuthGetTodosResult = Error | MutationAuthGetTodosSuccess
-
-type MutationAuthGetTodosSuccess {
-  data: [TodoList!]!
-}
-
 union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
 
 type MutationCreateTaskSuccess {
   data: Task!
-}
-
-union MutationCreateTodoResult = Error | MutationCreateTodoSuccess
-
-type MutationCreateTodoSuccess {
-  data: TodoList!
 }
 
 union MutationDeleteUserResult = Error | MutationDeleteUserSuccess
@@ -60,20 +46,20 @@ type MutationVerifyJwtSuccess {
 }
 
 type Query {
-  allTodos: QueryAllTodosResult!
   allUsers: QueryAllUsersResult!
-}
-
-union QueryAllTodosResult = Error | QueryAllTodosSuccess
-
-type QueryAllTodosSuccess {
-  data: [TodoList!]!
+  authGetTasks: QueryAuthGetTasksResult!
 }
 
 union QueryAllUsersResult = Error | QueryAllUsersSuccess
 
 type QueryAllUsersSuccess {
   data: [User!]!
+}
+
+union QueryAuthGetTasksResult = Error | QueryAuthGetTasksSuccess
+
+type QueryAuthGetTasksSuccess {
+  data: [Task!]!
 }
 
 type Subscription {
@@ -92,30 +78,11 @@ interface SubscriptionEvent {
 }
 
 type Task {
-  id: Int!
-  list: TodoList!
-  listId: Int!
-  minutesEstimate: Float
-  name: String!
-}
-
-input TaskCreateInput {
-  listId: Int!
-  minutesEstimates: Float
-  name: String!
-}
-
-input TodoCreateInput {
-  name: String!
-  userEmail: String!
-}
-
-type TodoList {
+  completed: Boolean!
+  createdAt: DateTime!
   id: Int!
   name: String!
-  task: [Task!]!
   user: User!
-  userEmail: String!
 }
 
 type User {

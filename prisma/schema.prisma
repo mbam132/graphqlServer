@@ -15,7 +15,7 @@ model User {
   id    Int        @id @default(autoincrement())
   email String     @unique
   name  String?
-  lists TodoList[]
+  tasks Task[]
   password String @default("password")
   authScope AuthScope @default(PLAINUSER)
 }
@@ -25,20 +25,19 @@ enum AuthScope {
   PLAINUSER
 }
 
-model TodoList {
+model Task {
   id        Int    @id @default(autoincrement())
+  createdAt DateTime   @default(now())
+  completed Boolean    @default(false)
   name      String
   userEmail String
-  tasks     Task[]
   user User @relation(fields: [userEmail], references: [email], onDelete: Cascade, onUpdate: Cascade)
 }
 
-model Task {
-  id              Int      @id @default(autoincrement())
-  name            String
-  minutesEstimate Float?
-  listId          Int
-  list TodoList @relation(fields: [listId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+model TaskActionsLog{
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now())
+  action    TaskAction
 }
 
 model UserActionsLog {
@@ -46,6 +45,12 @@ model UserActionsLog {
   createdAt DateTime   @default(now())
   action    UserAction
   email     String
+}
+
+enum TaskAction {
+  CREATED
+  CHANGED_STATUS
+  DELETED
 }
 
 enum UserAction {

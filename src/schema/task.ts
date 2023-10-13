@@ -1,23 +1,46 @@
 import { builder } from '../builder'
 import { prisma } from '../db'
+import { tokenIsValid } from '../services/auth'
+import { Task } from '@prisma/client'
 
 const taskObject = builder.prismaObject('Task', {
   fields: (t) => ({
     id: t.exposeInt('id'),
     name: t.exposeString('name'),
-    minutesEstimate: t.exposeFloat('minutesEstimate', { nullable: true }),
-    list: t.relation('list'),
-    listId: t.exposeInt('listId'),
+    completed: t.exposeBoolean('completed'),
+    user: t.relation('user'),
+    createdAt: t.expose('createdAt', { type: 'DateTime' }),
   }),
 })
 
-const TaskCreateInput = builder.inputType('TaskCreateInput', {
-  fields: (t) => ({
-    name: t.string({ required: true }),
-    minutesEstimates: t.float({ required: false }),
-    listId: t.int({ required: true }),
+builder.queryFields((t) => ({
+  authGetTasks: t.prismaField({
+    type: ['Task'],
+    errors: {
+      types: [Error],
+    },
+    authScopes: {
+      LOGGED_IN: true,
+      SUPERUSER: false,
+    },
+    resolve: async (query, parent, args, ctx) => {
+      // @ts-ignore
+      const token = ctx.req?.req?.headers?.authorization?.split('Bearer ')[1]
+      const { payload: tokenPayload } = tokenIsValid(token)
+
+      const dbRequestResult = await prisma.user.findFirst({
+        where: {
+          email: tokenPayload.email,
+        },
+        include: {
+          tasks: true,
+        },
+      })
+
+      return dbRequestResult?.tasks as Task[]
+    },
   }),
-})
+}))
 
 builder.mutationFields((t) => ({
   createTask: t.prismaField({
@@ -25,20 +48,27 @@ builder.mutationFields((t) => ({
     errors: {
       types: [Error],
     },
+    authScopes: {
+      LOGGED_IN: true,
+      SUPERUSER: false,
+    },
     args: {
-      data: t.arg({
-        type: TaskCreateInput,
+      name: t.arg({
+        type: 'String',
         required: true,
       }),
     },
     resolve: async (query, parent, args, ctx) => {
+      // @ts-ignore
+      const token = ctx.req?.req?.headers?.authorization?.split('Bearer ')[1]
+      const { payload: tokenPayload } = tokenIsValid(token)
+
       try {
         const createdTask = await prisma.task.create({
           ...query,
           data: {
-            name: args.data.name,
-            listId: args.data.listId,
-            minutesEstimate: args.data.minutesEstimates,
+            name: args.name,
+            userEmail: tokenPayload.email,
           },
         })
         return createdTask

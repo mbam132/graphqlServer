@@ -9,8 +9,10 @@ type Error {
 
 type Mutation {
   createTask(name: String!): MutationCreateTaskResult!
+  deleteTask(id: Int!): MutationDeleteTaskResult!
   deleteUser(email: String, id: Int): MutationDeleteUserResult!
   login(email: String!, password: String!): MutationLoginResult!
+  modifyTask(completed: Boolean!, id: Int!): MutationModifyTaskResult!
   signUp(email: String!, name: String, password: String!): MutationSignUpResult!
   verifyJwt(value: String!): MutationVerifyJwtResult!
 }
@@ -18,6 +20,12 @@ type Mutation {
 union MutationCreateTaskResult = Error | MutationCreateTaskSuccess
 
 type MutationCreateTaskSuccess {
+  data: Task!
+}
+
+union MutationDeleteTaskResult = Error | MutationDeleteTaskSuccess
+
+type MutationDeleteTaskSuccess {
   data: Task!
 }
 
@@ -31,6 +39,12 @@ union MutationLoginResult = Error | MutationLoginSuccess
 
 type MutationLoginSuccess {
   data: UserAuth!
+}
+
+union MutationModifyTaskResult = Error | MutationModifyTaskSuccess
+
+type MutationModifyTaskSuccess {
+  data: Boolean!
 }
 
 union MutationSignUpResult = Error | MutationSignUpSuccess
